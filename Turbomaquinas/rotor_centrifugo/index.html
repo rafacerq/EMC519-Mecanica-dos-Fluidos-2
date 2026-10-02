@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Triângulo de Velocidades</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,650&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: bancada de trabalho. Figura grande à esquerda, etapas e controles à direita; resultados e curva H×Q abaixo. */
+:root{
+  --bg:#f5f6f8; --panel:#ffffff; --fg:#1b1f27; --muted:#5d6675; --line:#d9dde4; --accent:#1e4fd8;
+  --cV:#d62828; --cW:#1f7a33; --cU:#1e4fd8; --cN:#c800c8; --cT:#1a237e; --cB:#e0660b; --ink:#2b2f38; --faint:#c3c8d1;
+  --ok:#1f7a33; --warn:#b35c00; --okbg:#e5f3e8; --warnbg:#fbeedd;
+  --f-display:"Literata",Georgia,serif; --f-body:"Public Sans",system-ui,sans-serif; --f-mono:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12151b; --panel:#1a1e26; --fg:#e7e9ee; --muted:#9aa3b2; --line:#2c323d; --accent:#7ea2ff;
+  --cV:#ff6b6b; --cW:#5fd07a; --cU:#6f9bff; --cN:#ff70ff; --cT:#b3b9ff; --cB:#ffa24a; --ink:#d5d9e1; --faint:#3a414d;
+  --ok:#5fd07a; --warn:#ffb35c; --okbg:#173024; --warnbg:#3a2a14; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12151b; --panel:#1a1e26; --fg:#e7e9ee; --muted:#9aa3b2; --line:#2c323d; --accent:#7ea2ff;
+  --cV:#ff6b6b; --cW:#5fd07a; --cU:#6f9bff; --cN:#ff70ff; --cT:#b3b9ff; --cB:#ffa24a; --ink:#d5d9e1; --faint:#3a414d;
+  --ok:#5fd07a; --warn:#ffb35c; --okbg:#173024; --warnbg:#3a2a14; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:28px 48px;display:grid;gap:22px}
+header h1{font-family:var(--f-display);font-weight:650;font-size:clamp(1.6rem,3.2vw,2.2rem);line-height:1.15;margin:0;text-wrap:balance}
+header p{margin:.4rem 0 0;color:var(--muted);max-width:70ch}
+.eyebrow{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.main{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:22px;align-items:start}
+@media (max-width:860px){.main{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+.fig{display:grid;gap:8px}
+.fig svg{width:100%;height:auto;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.82rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:22px;height:3px;border-radius:2px}
+.steps{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:12px}
+.steps button{font:600 .9rem var(--f-mono);padding:8px 0;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:6px;cursor:pointer}
+.steps button[aria-current="step"]{background:var(--accent);border-color:var(--accent);color:var(--panel)}
+.steps button.done{border-color:var(--accent)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.steptitle{font-family:var(--f-display);font-size:1.25rem;font-weight:650;margin:0 0 6px}
+.steptext{margin:0;min-height:8.5em}
+.steptext p{margin:0 0 .6em}
+.nav{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.btn{font:500 .88rem var(--f-body);padding:7px 12px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--panel)}
+.controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px}
+@media (max-width:420px){.controls{grid-template-columns:minmax(0,1fr)}}
+.ctl{display:grid;gap:2px;min-width:0}
+.ctl label{display:flex;justify-content:space-between;gap:8px;font-size:.84rem;color:var(--muted)}
+.ctl output{font:500 .84rem var(--f-mono);color:var(--fg);font-variant-numeric:tabular-nums}
+.ctl input[type=range]{width:100%;accent-color:var(--accent)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+select{font:inherit;font-size:.86rem;padding:5px 8px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--fg);max-width:100%}
+h2{font-family:var(--f-display);font-weight:650;font-size:1.15rem;margin:0 0 10px}
+.results{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:22px}
+@media (max-width:860px){.results{grid-template-columns:minmax(0,1fr)}}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td{font-family:var(--f-mono);font-size:.88rem}
+td:first-child{font-family:var(--f-body);font-size:.92rem}
+.unit{color:var(--muted);font-size:.8rem}
+.euler{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+.euler div{border:1px solid var(--line);border-radius:8px;padding:10px}
+.euler b{display:block;font:500 1.25rem var(--f-mono);font-variant-numeric:tabular-nums}
+.euler small{color:var(--muted)}
+.chip{display:inline-block;font-size:.8rem;padding:3px 9px;border-radius:99px;font-weight:600}
+.chip.ok{background:var(--okbg);color:var(--ok)}
+.chip.warn{background:var(--warnbg);color:var(--warn)}
+.eq{font-family:var(--f-mono);font-size:.86rem;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin:.5em 0;overflow-x:auto;white-space:nowrap}
+.note{color:var(--muted);font-size:.86rem;margin:.6em 0 0}
+svg text{font-family:var(--f-body)}
+@media (prefers-reduced-motion:no-preference){.fade{animation:fd .35s ease-out}@keyframes fd{from{opacity:.25}to{opacity:1}}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">EMC5419 · Mecânica dos Fluidos II · Turbomáquinas</div>
+    <h1>Triângulo de velocidades em um rotor centrífugo</h1>
+    <p>Percorra as sete etapas da construção e depois altere rotação, vazão e geometria para ver como o triângulo e a equação de Euler respondem.</p>
+  </header>
+
+  <div class="main">
+    <section class="card fig" aria-label="Figura">
+      <svg id="rotor" role="img" aria-label="Rotor com vetores de velocidade"></svg>
+      <svg id="tri" role="img" aria-label="Triângulos de velocidades de saída e entrada"></svg>
+      <div class="legend">
+        <span><i style="background:var(--cU)"></i>ωr (pá)</span>
+        <span><i style="background:var(--cW)"></i>V<sub>relativa</sub></span>
+        <span><i style="background:var(--cV)"></i>V (absoluta)</span>
+        <span><i style="background:var(--cN)"></i>V<sub>n</sub></span>
+        <span><i style="background:var(--cT)"></i>V<sub>t</sub></span>
+        <span><i style="background:var(--cB)"></i>pá</span>
+      </div>
+    </section>
+
+    <div style="display:grid;gap:22px;min-width:0">
+      <section class="card" aria-label="Etapas">
+        <div class="steps" id="steps"></div>
+        <h3 class="steptitle" id="stTitle"></h3>
+        <div class="steptext" id="stText"></div>
+        <div class="nav">
+          <button class="btn" id="prev">← Anterior</button>
+          <button class="btn primary" id="next">Próxima →</button>
+          <button class="btn" id="all">Mostrar tudo</button>
+        </div>
+      </section>
+
+      <section class="card" aria-label="Parâmetros">
+        <h2>Parâmetros</h2>
+        <div class="controls" id="controls"></div>
+        <div class="row">
+          <label for="mode" class="unit">Entrada:</label>
+          <select id="mode">
+            <option value="radial">radial, sem pré-rotação (V₁,t = 0)</option>
+            <option value="pa">fluido segue a pá (β do escoamento = β₁)</option>
+          </select>
+        </div>
+        <div class="row">
+          <button class="btn" id="fixb1">Ajustar β₁ para incidência nula</button>
+          <button class="btn" id="reset">Restaurar exemplo</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="results">
+    <section class="card">
+      <h2>Componentes de velocidade</h2>
+      <div class="tbl"><table>
+        <thead><tr><th>Grandeza</th><th>Entrada (1)</th><th>Saída (2)</th><th></th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table></div>
+      <div id="inc" style="margin-top:10px"></div>
+      <div class="euler" id="euler"></div>
+    </section>
+    <section class="card">
+      <h2>Altura teórica × vazão</h2>
+      <svg id="hq" role="img" aria-label="Curva de altura teórica em função da vazão" style="width:100%;height:auto;display:block"></svg>
+      <p class="note">Linha cheia: equação de Euler com os parâmetros atuais. Linha tracejada: pás radiais (β₂ = 90°), H = (ωr₂)²/g. O ponto marca a vazão selecionada.</p>
+    </section>
+  </div>
+</div>
+
+<script>
+(function(){
+const DEF={N:1750,Q:50,b1d:23.5,b2d:30,r1:50,r2:150,b1:40,b2:20,mode:'radial'};
+let P=Object.assign({},DEF);
+let step=1; const g=9.81, rho=998;
+const D=Math.PI/180;
+
+const CTL=[
+ ['N','Rotação N','rpm',300,3600,10,0],
+ ['Q','Vazão Q','L/s',2,150,1,0],
+ ['b1d','Ângulo de pá β₁','°',5,90,0.5,1],
+ ['b2d','Ângulo de pá β₂','°',15,150,1,0],
+ ['r1','Raio de entrada r₁','mm',20,120,1,0],
+ ['r2','Raio de saída r₂','mm',80,300,1,0],
+ ['b1','Largura b₁','mm',5,80,1,0],
+ ['b2','Largura b₂','mm',5,60,1,0]];
+
+const STEPS=[
+ ['Geometria do rotor',`<p>Circunferências de entrada (r₁) e saída (r₂) e a pá, em laranja, que liga uma à outra. As outras pás aparecem em cinza.</p><p>Em cada extremidade da pá marcamos a direção <b>radial</b> e a direção <b>tangencial</b>. Todas as componentes de velocidade serão medidas nessas duas direções.</p>`],
+ ['Velocidade da pá, ωr',`<p>Cada ponto do rotor gira em torno do eixo. Sua velocidade é tangente à circunferência, no sentido da rotação (aqui, horário), com módulo ωr.</p><p>Como r₂ > r₁, o vetor na saída é maior na razão r₂/r₁. É a única velocidade que depende só da rotação e da geometria.</p>`],
+ ['Velocidade relativa',`<p>Quem gira com o rotor vê o fluido deslizar ao longo da pá. Por isso V<sub>relativa</sub> é <b>tangente à pá</b> na saída.</p><p>O ângulo entre a pá e o sentido <b>oposto</b> à rotação é o ângulo de pá β. Ele vem do desenho da pá. O módulo de V<sub>relativa</sub> só será conhecido com a vazão.</p><p>Na entrada, a direção de V<sub>relativa</sub> depende de como o fluido chega (veja o seletor “Entrada”).</p>`],
+ ['Velocidade absoluta, V',`<p>Somando os dois vetores anteriores obtemos a velocidade que um observador parado mediria:</p><div class="eq">V = V<sub>relativa</sub> + ω × r</div><p>V é a diagonal do paralelogramo pontilhado. É ela que entra na equação de Euler.</p>`],
+ ['O triângulo',`<p>Metade do paralelogramo contém toda a informação. Abaixo do rotor, os triângulos de saída e de entrada foram destacados e girados para que ωr fique na horizontal. Os dois usam a mesma escala.</p><p>Compare: na entrada V₁ é quase radial; na saída V₂ está inclinada no sentido da rotação. Esse ganho de componente tangencial é a transferência de energia.</p>`],
+ ['Componente normal, Vₙ',`<p>A componente de V perpendicular a ωr atravessa a superfície cilíndrica de raio r e carrega a vazão:</p><div class="eq">Vₙ = Q / (2π r b)</div><p>Como ωr é tangencial, Vₙ é a mesma para V e para V<sub>relativa</sub>. Aumente Q e veja o triângulo “crescer para cima”.</p>`],
+ ['Componente tangencial, Vₜ',`<p>A componente paralela a ωr define o momento angular do fluido, r·Vₜ. No triângulo de saída, o segmento verde claro na base é a projeção de V<sub>relativa</sub>, de comprimento Vₙ/tan β:</p><div class="eq">Vₜ = ωr − Vₙ / tan β</div><p>Com Vₜ na entrada e na saída, a equação de Euler dá torque, potência e altura (painel abaixo).</p>`]];
+
+/* ---------- física ---------- */
+function solve(p){
+  const w=p.N*2*Math.PI/60, r1=p.r1/1000, r2=p.r2/1000, b1=p.b1/1000, b2=p.b2/1000, Q=p.Q/1000;
+  const U1=w*r1, U2=w*r2, A1=2*Math.PI*r1*b1, A2=2*Math.PI*r2*b2;
+  const Vn1=Q/A1, Vn2=Q/A2;
+  const cot=x=>Math.cos(x)/Math.sin(x);
+  const V1t = p.mode==='radial'?0:U1-Vn1*cot(p.b1d*D);
+  const V2t = U2-Vn2*cot(p.b2d*D);
+  const bf1=Math.atan2(Vn1,U1-V1t)/D, bf2=Math.atan2(Vn2,U2-V2t)/D;
+  const W1=Math.hypot(Vn1,U1-V1t), W2=Math.hypot(Vn2,U2-V2t);
+  const V1=Math.hypot(Vn1,V1t), V2=Math.hypot(Vn2,V2t);
+  const a1=Math.atan2(Vn1,V1t)/D, a2=Math.atan2(Vn2,V2t)/D;
+  const m=rho*Q, T=m*(r2*V2t-r1*V1t), Pw=w*T, H=(U2*V2t-U1*V1t)/g;
+  return {w,r1,r2,U1,U2,Vn1,Vn2,V1t,V2t,bf1,bf2,W1,W2,V1,V2,a1,a2,m,T,Pw,H,A1,A2};
+}
+function Hof(p,Qls){const q=Object.assign({},p,{Q:Qls});return solve(q).H;}
+
+/* ---------- utilitários SVG ---------- */
+function mk(){const s=[];let bb=[1e9,1e9,-1e9,-1e9];
+  const tr=(x,y)=>{bb[0]=Math.min(bb[0],x);bb[1]=Math.min(bb[1],y);bb[2]=Math.max(bb[2],x);bb[3]=Math.max(bb[3],y);};
+  return {s,tr,bb:()=>bb};}
+const f=n=>n.toFixed(1);
+function line(C,x1,y1,x2,y2,col,o={}){C.tr(x1,y1);C.tr(x2,y2);
+  C.s.push(`<line x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" style="stroke:var(${col});stroke-width:${o.w||1.3};${o.dash?'stroke-dasharray:'+o.dash+';':''}${o.op?'opacity:'+o.op:''}" stroke-linecap="round"/>`);}
+function arrow(C,x1,y1,x2,y2,col,o={}){const L=Math.hypot(x2-x1,y2-y1); if(L<0.5) return;
+  const ux=(x2-x1)/L, uy=(y2-y1)/L, h=Math.min(o.h||11,L*0.6), wd=h*0.42;
+  line(C,x1,y1,x2-ux*h*0.8,y2-uy*h*0.8,col,o);
+  const bx=x2-ux*h, by=y2-uy*h;
+  C.s.push(`<polygon points="${f(x2)},${f(y2)} ${f(bx-uy*wd)},${f(by+ux*wd)} ${f(bx+uy*wd)},${f(by-ux*wd)}" style="fill:var(${col})"/>`);}
+function lab(C,x,y,main,sub,col,o={}){C.tr(x-18,y-14);C.tr(x+30,y+8);
+  const vec=o.vec?`<tspan style="font-size:70%" dy="-0.2em">→</tspan>`:'';
+  C.s.push(`<text x="${f(x)}" y="${f(y)}" text-anchor="${o.a||'middle'}" dominant-baseline="middle" style="fill:var(${col});font-size:${o.fs||15}px;font-style:italic">${main}${sub?`<tspan baseline-shift="sub" style="font-size:70%;font-style:normal">${sub}</tspan>`:''}</text>`);}
+function tipLab(C,x1,y1,x2,y2,main,sub,col,off=16){const L=Math.hypot(x2-x1,y2-y1)||1;lab(C,x2+(x2-x1)/L*off,y2+(y2-y1)/L*off,main,sub,col);}
+function arcA(C,cx,cy,a0,a1,r,text,sub){ // ângulos em rad, convenção svg
+  let d=a1-a0; while(d>Math.PI)d-=2*Math.PI; while(d<-Math.PI)d+=2*Math.PI;
+  const x0=cx+r*Math.cos(a0),y0=cy+r*Math.sin(a0),x1=cx+r*Math.cos(a0+d),y1=cy+r*Math.sin(a0+d);
+  C.s.push(`<path d="M${f(x0)} ${f(y0)} A${r} ${r} 0 0 ${d>0?1:0} ${f(x1)} ${f(y1)}" style="fill:none;stroke:var(--ink);stroke-width:1.2"/>`);
+  if(text){const am=a0+d/2;lab(C,cx+(r+15)*Math.cos(am),cy+(r+13)*Math.sin(am),text,sub,'--ink',{fs:14});}}
+function finish(el,C,pad=14){const b=C.bb();el.setAttribute('viewBox',`${f(b[0]-pad)} ${f(b[1]-pad)} ${f(b[2]-b[0]+2*pad)} ${f(b[3]-b[1]+2*pad)}`);el.innerHTML=`<g class="fade">${C.s.join('')}</g>`;}
+
+/* ---------- rotor ---------- */
+function drawRotor(S){
+  const C=mk(); const R2=190, k=R2/S.r2, R1=S.r1*k;
+  // lâmina: dθ = cot β dr / r, β linear em r (rotação horária => pá avança anti-horário)
+  const n=80, pts=[]; let th=0;
+  const bet=r=>(P.b1d+(P.b2d-P.b1d)*(r-S.r1)/(S.r2-S.r1))*D;
+  for(let i=0;i<=n;i++){const r=S.r1+(S.r2-S.r1)*i/n; if(i>0){const rm=r-(S.r2-S.r1)/n/2; th+=Math.cos(bet(rm))/Math.sin(bet(rm))*((S.r2-S.r1)/n)/rm;} pts.push([r,th]);}
+  const th2=100*D, th1=th2-th;
+  const toS=(r,t)=>[r*k*Math.cos(t),-r*k*Math.sin(t)];
+  // circunferências (arcos superiores)
+  const ta=th1-40*D, tb=th2+110*D;
+  const arc=(R,c)=>{let d='';for(let i=0;i<=90;i++){const t=ta+(tb-ta)*i/90;const x=R*Math.cos(t),y=-R*Math.sin(t);C.tr(x,y);d+=(i?'L':'M')+f(x)+' '+f(y);}C.s.push(`<path d="${d}" style="fill:none;stroke:var(${c});stroke-width:2.2;opacity:.8"/>`);};
+  arc(R2,'--cN'); arc(R1,'--cN');
+  // outras pás
+  const Z=7;
+  for(let j=1;j<Z;j++){const sh=j*2*Math.PI/Z;let d='';pts.forEach((p,i)=>{const [x,y]=toS(p[0],th1+p[1]+sh);d+=(i?'L':'M')+f(x)+' '+f(y);});C.s.push(`<path d="${d}" style="fill:none;stroke:var(--faint);stroke-width:2.2"/>`);}
+  let d='';pts.forEach((p,i)=>{const [x,y]=toS(p[0],th1+p[1]);C.tr(x,y);d+=(i?'L':'M')+f(x)+' '+f(y);});
+  C.s.push(`<path d="${d}" style="fill:none;stroke:var(--cB);stroke-width:3.2;stroke-linecap:round"/>`);
+  // centro e raios
+  C.s.push(`<path d="M-7 0H7M0 -7V7" style="stroke:var(--ink);stroke-width:1.6"/>`);C.tr(0,0);
+  const ra=(R,t,name,sub)=>{const x=R*Math.cos(t),y=-R*Math.sin(t);arrow(C,0,0,x,y,'--ink',{w:1,h:8});lab(C,x*0.55+12*Math.sin(t),y*0.55+12*Math.cos(t),name,sub,'--ink');};
+  ra(R2,th2+40*D,'r','2'); ra(R1,th2+85*D,'r','1');
+
+  const vmax=Math.max(S.U2,S.V2,S.W2,S.U1,S.V1,S.W1,1e-6), sv=0.8*R2/vmax;
+  const ends=[[1,R1,th1,S.U1,S.Vn1,S.V1t,P.b1d],[2,R2,th2,S.U2,S.Vn2,S.V2t,P.b2d]];
+  ends.forEach(([i,R,t,U,Vn,Vt,bd])=>{
+    const px=R*Math.cos(t), py=-R*Math.sin(t);
+    const rh=[Math.cos(t),-Math.sin(t)], th_=[Math.sin(t),Math.cos(t)]; // em coordenadas svg (y para baixo); t̂ horário
+    const L=R2*0.5;
+    line(C,0,0,px+rh[0]*L*0.35,py+rh[1]*L*0.35,'--ink',{dash:'3 3',w:.9,op:.7});
+    line(C,px-th_[0]*L,py-th_[1]*L,px+th_[0]*L*0.3,py+th_[1]*L*0.3,'--ink',{dash:'3 3',w:.9,op:.7});
+    if(step<2) return;
+    const Ux=U*th_[0]*sv, Uy=U*th_[1]*sv;
+    arrow(C,px,py,px+Ux,py+Uy,'--cU',{w:2.4}); tipLab(C,px,py,px+Ux,py+Uy,'ωr',String(i),'--cU');
+    if(step<3) return;
+    const Wx=(Vn*rh[0]-(U-Vt)*th_[0])*sv, Wy=(Vn*rh[1]-(U-Vt)*th_[1])*sv;
+    arrow(C,px,py,px+Wx,py+Wy,'--cW',{w:2.4}); tipLab(C,px,py,px+Wx,py+Wy,'V',i+',rel','--cW',20);
+    // ângulo de pá (entre −t̂ e a tangente da pá)
+    const a0=Math.atan2(-th_[1],-th_[0]);
+    const bladeDir=[Math.sin(bd*D)*rh[0]-Math.cos(bd*D)*th_[0],Math.sin(bd*D)*rh[1]-Math.cos(bd*D)*th_[1]];
+    arcA(C,px,py,a0,Math.atan2(bladeDir[1],bladeDir[0]),34,'β',String(i));
+    if(step<4) return;
+    const Vx=(Vn*rh[0]+Vt*th_[0])*sv, Vy=(Vn*rh[1]+Vt*th_[1])*sv;
+    line(C,px+Wx,py+Wy,px+Vx,py+Vy,'--ink',{dash:'3 3',w:1});
+    line(C,px+Ux,py+Uy,px+Vx,py+Vy,'--ink',{dash:'3 3',w:1});
+    arrow(C,px,py,px+Vx,py+Vy,'--cV',{w:2.6}); tipLab(C,px,py,px+Vx,py+Vy,'V',String(i),'--cV');
+    if(step<6) return;
+    const Nx=Vn*rh[0]*sv, Ny=Vn*rh[1]*sv;
+    arrow(C,px,py,px+Nx,py+Ny,'--cN',{w:1.8,dash:'5 3',h:9});
+    if(step<7) return;
+    arrow(C,px+Nx,py+Ny,px+Vx,py+Vy,'--cT',{w:1.8,dash:'5 3',h:9});
+  });
+  finish(document.getElementById('rotor'),C,10);
+}
+
+/* ---------- triângulos ---------- */
+function drawTri(S){
+  const el=document.getElementById('tri');
+  if(step<5){el.innerHTML='';el.setAttribute('viewBox','0 0 10 1');el.style.display='none';return;}
+  el.style.display='block';
+  const C=mk();
+  const data=[[2,S.U2,S.Vn2,S.V2t,P.b2d,S.bf2],[1,S.U1,S.Vn1,S.V1t,P.b1d,S.bf1]];
+  const ext=d=>Math.max(d[1],d[3])-Math.min(0,d[3]-d[1])+d[1]*0.15;
+  const st=440/Math.max(ext(data[0]),ext(data[1]),1e-6);
+  let y0=0;
+  data.forEach(([i,U,Vn,Vt,bd,bf],idx)=>{
+    const left=Math.min(0,Vt-U)*st, right=Math.max(U,Vt)*st;
+    const ox=-left+Math.max(U*0.25*st,26), oy=y0+Vn*st+30;
+    // base prolongada
+    line(C,ox-Math.max(U*0.25*st,26)+Math.min(0,(Vt-U)*st),oy,ox,oy,'--ink',{dash:'3 3',w:1});
+    const Ux=U*st, Wx=-(U-Vt)*st, Wy=-Vn*st, Vx=Vt*st, Vy=-Vn*st;
+    if(step>=7){line(C,ox+Wx,oy,ox,oy,'--cW',{w:5,op:.35}); lab(C,ox+Wx/2,oy+16,'Vₙ/tan β','','--cW',{fs:12});}
+    line(C,ox+Wx,oy+Wy,ox+Vx,oy+Vy,'--ink',{dash:'3 3',w:1});
+    line(C,ox+Ux,oy,ox+Vx,oy+Vy,'--ink',{dash:'3 3',w:1});
+    arrow(C,ox,oy,ox+Ux,oy,'--cU',{w:2.4}); lab(C,ox+Ux,oy+18,'ωr',String(i),'--cU');
+    arrow(C,ox,oy,ox+Wx,oy+Wy,'--cW',{w:2.4}); lab(C,ox+Wx-4,oy+Wy-14,'V',i+',rel','--cW');
+    arrow(C,ox,oy,ox+Vx,oy+Vy,'--cV',{w:2.6}); lab(C,ox+Vx*0.6+14,oy+Vy*0.6+12,'V',String(i),'--cV');
+    arcA(C,ox,oy,Math.PI,Math.atan2(Wy,Wx),26,'β',(Math.abs(bf-bd)>0.5&&i===1)?'1,esc':String(i));
+    if(i===1 && Math.abs(bf-bd)>0.5){ // direção da pá na entrada
+      const L=Math.hypot(Wx,Wy)*1.05, dx=-Math.cos(bd*D)*L, dy=-Math.sin(bd*D)*L;
+      line(C,ox,oy,ox+dx,oy+dy,'--cB',{dash:'6 4',w:2});
+      lab(C,ox+dx-6,oy+dy-12,'pá','','--cB',{fs:12});
+    }
+    if(step>=6){arrow(C,ox,oy,ox,oy+Vy,'--cN',{w:1.8,dash:'5 3',h:9}); lab(C,ox+6,oy+Vy+16,'V',i+',n','--cN',{a:'start',fs:13});}
+    if(step>=7 && Math.abs(Vt)>0.05){arrow(C,ox,oy+Vy,ox+Vx,oy+Vy,'--cT',{w:1.8,dash:'5 3',h:9}); lab(C,ox+Vx/2,oy+Vy-14,'V',i+',t','--cT');}
+    lab(C,ox-Math.max(U*0.25*st,26)+Math.min(0,(Vt-U)*st),oy-Vn*st-40,i===2?'Saída':'Entrada','','--muted',{fs:13,a:'start'});
+    y0=oy+60;
+  });
+  finish(el,C,12);
+}
+
+/* ---------- H × Q ---------- */
+function drawHQ(S){
+  const el=document.getElementById('hq'); const W=460,H=250,ml=46,mb=34,mt=12,mr=14;
+  const Qmax=150; const N=80; const pts=[];
+  for(let i=0;i<=N;i++){const q=Qmax*i/N;pts.push([q,Hof(P,q)]);}
+  const Hrad=S.U2*S.U2/g;
+  let ymax=Math.max(Hrad,...pts.map(p=>p[1]))*1.1; ymax=Math.max(ymax,5);
+  const nice=v=>{const e=Math.pow(10,Math.floor(Math.log10(v)));return [1,2,2.5,5,10].map(m=>m*e).find(m=>v/m<=6);};
+  const dy=nice(ymax); ymax=Math.ceil(ymax/dy)*dy;
+  const X=q=>ml+(W-ml-mr)*q/Qmax, Y=h=>mt+(H-mt-mb)*(1-Math.max(h,0)/ymax);
+  let s=`<rect x="0" y="0" width="${W}" height="${H}" style="fill:var(--panel)"/>`;
+  for(let v=0;v<=ymax+1e-9;v+=dy){s+=`<line x1="${ml}" x2="${W-mr}" y1="${f(Y(v))}" y2="${f(Y(v))}" style="stroke:var(--line)"/><text x="${ml-6}" y="${f(Y(v))}" text-anchor="end" dominant-baseline="middle" style="fill:var(--muted);font-size:11px;font-family:var(--f-mono)">${+v.toFixed(1)}</text>`;}
+  for(let q=0;q<=Qmax;q+=25){s+=`<text x="${f(X(q))}" y="${H-mb+16}" text-anchor="middle" style="fill:var(--muted);font-size:11px;font-family:var(--f-mono)">${q}</text>`;}
+  s+=`<text x="${(ml+W-mr)/2}" y="${H-3}" text-anchor="middle" style="fill:var(--muted);font-size:12px">Q (L/s)</text>`;
+  s+=`<text x="12" y="${mt+(H-mt-mb)/2}" transform="rotate(-90 12 ${mt+(H-mt-mb)/2})" text-anchor="middle" style="fill:var(--muted);font-size:12px">H teórica (m)</text>`;
+  s+=`<line x1="${ml}" x2="${W-mr}" y1="${f(Y(Hrad))}" y2="${f(Y(Hrad))}" style="stroke:var(--ink);stroke-dasharray:5 4;opacity:.6"/>`;
+  const vis=pts.filter(p=>p[1]>=0);
+  s+=`<path d="${vis.map((p,i)=>(i?'L':'M')+f(X(p[0]))+' '+f(Y(p[1]))).join('')}" style="fill:none;stroke:var(--accent);stroke-width:2.4"/>`;
+  if(S.H>=0 && P.Q<=Qmax) s+=`<circle cx="${f(X(P.Q))}" cy="${f(Y(S.H))}" r="5.5" style="fill:var(--cV);stroke:var(--panel);stroke-width:2"/><text x="${f(X(P.Q)+9)}" y="${f(Y(S.H)-10)}" style="fill:var(--fg);font-size:12px;font-family:var(--f-mono)">${S.H.toFixed(1)} m</text>`;
+  s+=`<line x1="${ml}" x2="${ml}" y1="${mt}" y2="${H-mb}" style="stroke:var(--muted)"/><line x1="${ml}" x2="${W-mr}" y1="${H-mb}" y2="${H-mb}" style="stroke:var(--muted)"/>`;
+  el.setAttribute('viewBox',`0 0 ${W} ${H}`); el.innerHTML=s;
+}
+
+/* ---------- tabela ---------- */
+function fmt(v,d=2){return (Math.abs(v)<1e-9?0:v).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function drawTable(S){
+  const rows=[
+    ['Velocidade da pá, ωr',S.U1,S.U2,'m/s'],
+    ['Componente normal, Vₙ',S.Vn1,S.Vn2,'m/s'],
+    ['Componente tangencial, Vₜ',S.V1t,S.V2t,'m/s'],
+    ['Velocidade relativa',S.W1,S.W2,'m/s'],
+    ['Velocidade absoluta, V',S.V1,S.V2,'m/s'],
+    ['Ângulo de V, α',S.a1,S.a2,'°',1],
+    ['Ângulo do escoamento relativo',S.bf1,S.bf2,'°',1]];
+  document.getElementById('tbody').innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${fmt(r[1],r[4]??2)}</td><td>${fmt(r[2],r[4]??2)}</td><td class="unit">${r[3]}</td></tr>`).join('');
+  const inc=P.b1d-S.bf1;
+  document.getElementById('inc').innerHTML = Math.abs(inc)<1
+    ? `<span class="chip ok">Incidência na entrada ≈ 0°</span> <span class="unit">O escoamento relativo chega alinhado com a pá.</span>`
+    : `<span class="chip warn">Incidência na entrada: ${fmt(inc,1)}°</span> <span class="unit">O escoamento relativo chega desalinhado da pá (β₁ = ${fmt(P.b1d,1)}°, escoamento a ${fmt(S.bf1,1)}°).</span>`;
+  document.getElementById('euler').innerHTML=`
+    <div><small>Torque no eixo</small><b>${fmt(S.T,1)}</b><small>N·m</small></div>
+    <div><small>Potência</small><b>${fmt(S.Pw/1000,2)}</b><small>kW</small></div>
+    <div><small>Altura teórica</small><b>${fmt(S.H,1)}</b><small>m</small></div>`;
+}
+
+/* ---------- UI ---------- */
+const cbox=document.getElementById('controls');
+cbox.innerHTML=CTL.map(([k,l,u,mn,mx,stp])=>`<div class="ctl"><label for="c_${k}"><span>${l}</span><output id="o_${k}"></output></label><input type="range" id="c_${k}" min="${mn}" max="${mx}" step="${stp}"></div>`).join('');
+function syncCtl(){CTL.forEach(([k,l,u,mn,mx,stp,dec])=>{document.getElementById('c_'+k).value=P[k];document.getElementById('o_'+k).textContent=fmt(+P[k],dec)+' '+u;});document.getElementById('mode').value=P.mode;}
+CTL.forEach(([k])=>document.getElementById('c_'+k).addEventListener('input',e=>{P[k]=+e.target.value;if(k==='r1'&&P.r1>=P.r2-20)P.r1=P.r2-20;if(k==='r2'&&P.r2<=P.r1+20)P.r2=P.r1+20;syncCtl();render();}));
+document.getElementById('mode').addEventListener('change',e=>{P.mode=e.target.value;render();});
+document.getElementById('fixb1').addEventListener('click',()=>{const S=solve(Object.assign({},P,{mode:'radial'}));P.b1d=Math.round(S.bf1*2)/2;syncCtl();render();});
+document.getElementById('reset').addEventListener('click',()=>{P=Object.assign({},DEF);syncCtl();render();});
+
+const sb=document.getElementById('steps');
+sb.innerHTML=STEPS.map((s,i)=>`<button id="st${i+1}" title="${s[0]}" aria-label="Etapa ${i+1}: ${s[0]}">${i+1}</button>`).join('');
+STEPS.forEach((s,i)=>document.getElementById('st'+(i+1)).addEventListener('click',()=>{step=i+1;render();}));
+document.getElementById('prev').addEventListener('click',()=>{if(step>1){step--;render();}});
+document.getElementById('next').addEventListener('click',()=>{if(step<7){step++;render();}});
+document.getElementById('all').addEventListener('click',()=>{step=7;render();});
+
+function render(){
+  const S=solve(P);
+  STEPS.forEach((s,i)=>{const b=document.getElementById('st'+(i+1));b.toggleAttribute('aria-current',false);b.classList.toggle('done',i+1<step);if(i+1===step)b.setAttribute('aria-current','step');});
+  document.getElementById('stTitle').textContent=`Etapa ${step}: ${STEPS[step-1][0]}`;
+  document.getElementById('stText').innerHTML=STEPS[step-1][1];
+  document.getElementById('prev').disabled=step===1; document.getElementById('next').disabled=step===7;
+  drawRotor(S); drawTri(S); drawHQ(S); drawTable(S);
+}
+syncCtl(); render();
+})();
+</script>
+</body>
+</html>
